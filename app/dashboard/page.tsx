@@ -29,6 +29,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { SearchIcon } from "lucide-react"
 
 interface EventsData {
   nba: Event[];
@@ -309,8 +311,14 @@ function EventCardSkeleton() {
   );
 }
 
-function EventsGrid({ events }: { events: Event[] }) {
-  if (events.length === 0) {
+function EventsGrid({ events, searchQuery }: { events: Event[], searchQuery: string }) {
+  const filteredEvents = events.filter(event => 
+    event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event._embedded?.venues?.[0]?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event._embedded?.venues?.[0]?.city.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (filteredEvents.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="rounded-full bg-muted p-4 mb-4">
@@ -318,7 +326,7 @@ function EventsGrid({ events }: { events: Event[] }) {
         </div>
         <h3 className="text-lg font-medium">No events found</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Check back later for upcoming events
+          {searchQuery ? 'No events match your search' : 'Check back later for upcoming events'}
         </p>
       </div>
     );
@@ -326,7 +334,7 @@ function EventsGrid({ events }: { events: Event[] }) {
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {events.map((event) => (
+      {filteredEvents.map((event) => (
         <EventCard key={event.id} event={event} />
       ))}
     </div>
@@ -337,6 +345,7 @@ export default function Page() {
   const [eventsData, setEventsData] = useState<EventsData>({ nba: [], mlb: [], nfl: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -467,6 +476,16 @@ export default function Page() {
             </p>
           </div>
           
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search events by name, venue, or city..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
           <Tabs defaultValue="nba" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="nba" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -480,13 +499,13 @@ export default function Page() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="nba" className="mt-0">
-              <EventsGrid events={eventsData.nba} />
+              <EventsGrid events={eventsData.nba} searchQuery={searchQuery} />
             </TabsContent>
             <TabsContent value="mlb" className="mt-0">
-              <EventsGrid events={eventsData.mlb} />
+              <EventsGrid events={eventsData.mlb} searchQuery={searchQuery} />
             </TabsContent>
             <TabsContent value="nfl" className="mt-0">
-              <EventsGrid events={eventsData.nfl} />
+              <EventsGrid events={eventsData.nfl} searchQuery={searchQuery} />
             </TabsContent>
           </Tabs>
         </div>
